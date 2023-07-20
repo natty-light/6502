@@ -1,20 +1,24 @@
 #define clk 6 // d6
 #define mode_btn 2 // d2
 #define clk_btn 3 // d3
-bool isManual = false;
+#define pulse_period 250
+#define milli_to_micro 1000
+
+bool is_manual = false;
+bool manual_clock_set = false;
 
 void toggle_clk() {
   digitalWrite(clk, HIGH);
-  delay(250);
+  delay(pulse_period);
   digitalWrite(clk, LOW);
-  delay(250);
+  delay(pulse_period);
 }
 
 void mode_btn_int() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   if (interrupt_time - last_interrupt_time > 200) {
-    isManual = !isManual;
+    is_manual = !is_manual;
   }
   last_interrupt_time = interrupt_time;
 }
@@ -23,7 +27,7 @@ void clk_btn_int() {
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   if (interrupt_time - last_interrupt_time > 200) {
-    toggle_clk();
+    manual_clock_set = true;
   }
 }
 
@@ -36,7 +40,10 @@ void setup() {
 }
 
 void loop() {
-  if (!isManual) {
+  if (!is_manual) {
     toggle_clk();
-  } 
+  } else if (manual_clock_set) {
+    toggle_clk();
+    manual_clock_set = false;
+  }
 }
