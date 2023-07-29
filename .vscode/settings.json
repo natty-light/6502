@@ -1,0 +1,6 @@
+{
+    "go.toolsEnvVars": {
+        "GOFLAGS": "-tags=avr,baremetal,linux,arm,atmega328p,atmega,avr5,tinygo,math_big_pure_go,gc.conservative,scheduler.none,serial.uart",
+        "GOROOT": "/Users/ngallant/Library/Caches/tinygo/goroot-7926d383955494918871b79847b53b0d15f97af370bc8d143e99b17c4b8c499c"
+    }
+}
