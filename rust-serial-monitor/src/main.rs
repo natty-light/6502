@@ -92,7 +92,7 @@ fn main() -> ! {
                 let bit = if (addr & 1 << i) != 0 { 1 } else { 0 };
                 ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwrite!(&mut serial, " {:4x}   {}   Data: ", addr, rwb_val).unwrap();
+            ufmt::uwrite!(&mut serial, " {:4x} {} Data: ", addr, rwb_val).unwrap();
             for i in 0..8 {
                 let bit = if (data & 1 << i) != 0 { 1 } else { 0 };
                 ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
