@@ -19,6 +19,7 @@ static INT_TRIGGERED: avr_device::interrupt::Mutex<cell::Cell<bool>> =
     avr_device::interrupt::Mutex::new(cell::Cell::new(false));
 
 #[avr_device::interrupt(atmega2560)]
+#[allow(non_snake_case)]
 fn INT4() {
     avr_device::interrupt::free(|cs| INT_TRIGGERED.borrow(cs).set(true))
 }
@@ -28,8 +29,6 @@ fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
     let pins = arduino_hal::pins!(dp);
     let mut serial = arduino_hal::default_serial!(dp, pins, 57600);
-
-    let mut led = pins.d13.into_output().downgrade();
 
     // Set INT4 to trigger on rising edge of pin change
     dp.EXINT
