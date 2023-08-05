@@ -84,27 +84,20 @@ fn main() -> ! {
             int_triggered = INT_TRIGGERED.borrow(cs).get();
         });
         if int_triggered {
-            let addr = read_address(&addr_pins);
-            let data = read_data(&data_pins);
-            let rwb_val = match rwb.is_high() {
-                true => 'r',
-                false => 'w',
-            };
+            let addr: u16 = read_address(&addr_pins);
+            let data: u8 = read_data(&data_pins);
+            let rwb_val: char = if rwb.is_high() { 'r' } else { 'w' };
             ufmt::uwrite!(&mut serial, "Address: ").unwrap();
-            for i in 0..addr.bin.len() {
-                ufmt::uwrite!(&mut serial, "{}", addr.bin[i]).unwrap();
+            for i in 0..16 {
+                let bit = if (addr & 1 << i) != 0 { 1 } else { 0 };
+                ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwrite!(&mut serial, "  ").unwrap();
-            for i in 0..addr.hex.len() {
-                ufmt::uwrite!(&mut serial, "{}", addr.hex[i] as char).unwrap();
+            ufmt::uwrite!(&mut serial, " {:4x}   {}   Data: ", addr, rwb_val).unwrap();
+            for i in 0..8 {
+                let bit = if (data & 1 << i) != 0 { 1 } else { 0 };
+                ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwrite!(&mut serial, "{}  Data ", rwb_val).unwrap();
-            for i in 0..data.bin.len() {
-                ufmt::uwrite!(&mut serial, "{}", data.bin[i]).unwrap();
-            }
-            ufmt::uwrite!(&mut serial, "  ").unwrap();
-            ufmt::uwrite!(&mut serial, "{}", data.hex as char).unwrap();
-            ufmt::uwriteln!(&mut serial, "").unwrap();
+            ufmt::uwriteln!(&mut serial, " {:4x}", data).unwrap();
             // Set Mutex value back to false, updated on next execution of line 68, setting int_triggered to false
             avr_device::interrupt::free(|cs| {
                 INT_TRIGGERED.borrow(cs).set(false);
@@ -113,53 +106,25 @@ fn main() -> ! {
     }
 }
 
-struct DataPins {
-    bin: [u8; 8],
-    hex: u8,
-}
-
-struct AddressPins {
-    bin: [u8; 16],
-    hex: [u8; 2],
-}
-
-fn read_address(pins: &[Pin<Input<Floating>, Dynamic>; 16]) -> AddressPins {
-    let mut bin_ret: [u8; 16] = [0; 16];
-    let mut hex_ret: [u8; 2] = [0; 2];
+fn read_address(pins: &[Pin<Input<Floating>, Dynamic>; 16]) -> u16 {
+    let mut addr: u16 = 0;
     for i in 0..16 {
-        let word = i / 8;
-        let bit = i % 8;
-        if pins[i].is_high() {
-            {
-                bin_ret[i] = 1;
-                hex_ret[word] += 1 << bit;
-            }
-        }
+        let bit: u16 = if pins[i].is_high() { 1 } else { 0 };
+        addr = (addr << 1) + bit
     }
-    AddressPins {
-        bin: bin_ret,
-        hex: hex_ret,
-    }
+    addr
 }
 
-fn read_data(pins: &[Pin<Input<Floating>, Dynamic>]) -> DataPins {
-    let mut bin_ret: [u8; 8] = [0; 8];
-    let mut hex_ret: u8 = 0;
+fn read_data(pins: &[Pin<Input<Floating>, Dynamic>]) -> u8 {
+    let mut data: u8 = 0;
     for i in 0..8 {
-        let bit = i % 8;
-        if pins[i].is_high() {
-            {
-                bin_ret[i] = 1;
-                hex_ret += 1 << bit;
-            }
-        }
+        let bit: u8 = if pins[i].is_high() { 1 } else { 0 };
+        data = (data << 1) + bit
     }
-    DataPins {
-        bin: bin_ret,
-        hex: hex_ret,
-    }
+    data
 }
 
+#[allow(dead_code)]
 fn toggle_pin(pin: &mut Pin<Output, Dynamic>) {
     pin.set_high();
     delay_ms(250);
