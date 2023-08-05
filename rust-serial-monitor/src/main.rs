@@ -97,7 +97,7 @@ fn main() -> ! {
                 let bit = if (data & 1 << i) != 0 { 1 } else { 0 };
                 ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwriteln!(&mut serial, " {:4x}", data).unwrap();
+            ufmt::uwriteln!(&mut serial, " {:2x}", data).unwrap();
             // Set Mutex value back to false, updated on next execution of line 68, setting int_triggered to false
             avr_device::interrupt::free(|cs| {
                 INT_TRIGGERED.borrow(cs).set(false);
