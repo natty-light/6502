@@ -43,37 +43,37 @@ fn main() -> ! {
     pins.d2.into_floating_input();
 
     let addr_pins: [Pin<Input<Floating>, Dynamic>; 16] = [
-        pins.d22.into_floating_input().downgrade(),
-        pins.d24.into_floating_input().downgrade(),
-        pins.d26.into_floating_input().downgrade(),
-        pins.d28.into_floating_input().downgrade(),
-        pins.d30.into_floating_input().downgrade(),
-        pins.d32.into_floating_input().downgrade(),
-        pins.d34.into_floating_input().downgrade(),
-        pins.d36.into_floating_input().downgrade(),
-        pins.d38.into_floating_input().downgrade(),
-        pins.d40.into_floating_input().downgrade(),
-        pins.d42.into_floating_input().downgrade(),
-        pins.d44.into_floating_input().downgrade(),
-        pins.d46.into_floating_input().downgrade(),
-        pins.d48.into_floating_input().downgrade(),
-        pins.d50.into_floating_input().downgrade(),
-        pins.d52.into_floating_input().downgrade(),
+        pins.d22.into_floating_input().downgrade(), // LSB - Black
+        pins.d24.into_floating_input().downgrade(), //     - White
+        pins.d26.into_floating_input().downgrade(), //     - Grey
+        pins.d28.into_floating_input().downgrade(), //     - Purple
+        pins.d30.into_floating_input().downgrade(), //     - Blue
+        pins.d32.into_floating_input().downgrade(), //     - Green
+        pins.d34.into_floating_input().downgrade(), //     - Yellow
+        pins.d36.into_floating_input().downgrade(), //     - Orange
+        pins.d38.into_floating_input().downgrade(), //     - Red
+        pins.d40.into_floating_input().downgrade(), //     - Brown
+        pins.d42.into_floating_input().downgrade(), //     - Black
+        pins.d44.into_floating_input().downgrade(), //     - White
+        pins.d46.into_floating_input().downgrade(), //     - Grey
+        pins.d48.into_floating_input().downgrade(), //     - Purple
+        pins.d50.into_floating_input().downgrade(), //     - Blue
+        pins.d52.into_floating_input().downgrade(), // MSB - Green
     ];
 
     // Data pins
     let data_pins: [Pin<Input<Floating>, Dynamic>; 8] = [
-        pins.d39.into_floating_input().downgrade(),
-        pins.d41.into_floating_input().downgrade(),
-        pins.d43.into_floating_input().downgrade(),
-        pins.d45.into_floating_input().downgrade(),
-        pins.d47.into_floating_input().downgrade(),
-        pins.d49.into_floating_input().downgrade(),
-        pins.d51.into_floating_input().downgrade(),
-        pins.d53.into_floating_input().downgrade(),
+        pins.d39.into_floating_input().downgrade(), // LSB - Grey
+        pins.d41.into_floating_input().downgrade(), //     - Purple
+        pins.d43.into_floating_input().downgrade(), //     - Blue
+        pins.d45.into_floating_input().downgrade(), //     - Green
+        pins.d47.into_floating_input().downgrade(), //     - Yellow
+        pins.d49.into_floating_input().downgrade(), //     - Orange
+        pins.d51.into_floating_input().downgrade(), //     - Red
+        pins.d53.into_floating_input().downgrade(), //MSB  - Brown
     ];
 
-    let rwb = pins.d37.into_floating_input().downgrade();
+    let rwb = pins.d3.into_floating_input().downgrade();
 
     // Flag for interrupt detection, updated by Mutex value in loop
     let mut int_triggered = false;
@@ -85,18 +85,25 @@ fn main() -> ! {
         if int_triggered {
             let addr: u16 = read_address(&addr_pins);
             let data: u8 = read_data(&data_pins);
-            let rwb_val: char = if rwb.is_high() { 'r' } else { 'w' };
-            ufmt::uwrite!(&mut serial, "Address: ").unwrap();
             for i in 0..16 {
-                let bit = if (addr & 1 << i) != 0 { 1 } else { 0 };
+                let bit_place = 15 - i;
+                let bit = if addr & (1 << bit_place) != 0 { 1 } else { 0 };
                 ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwrite!(&mut serial, " {:4x} {} Data: ", addr, rwb_val).unwrap();
+            ufmt::uwrite!(&mut serial, "   ").unwrap();
             for i in 0..8 {
-                let bit = if (data & 1 << i) != 0 { 1 } else { 0 };
+                let bit_place = 7 - i;
+                let bit = if data & (1 << bit_place) != 0 { 1 } else { 0 };
                 ufmt::uwrite!(&mut serial, "{}", bit).unwrap();
             }
-            ufmt::uwriteln!(&mut serial, " {:2x}", data).unwrap();
+            ufmt::uwriteln!(
+                &mut serial,
+                " {:04x} {} {:02x} ",
+                addr,
+                if rwb.is_high() { 'r' } else { 'w' },
+                data
+            )
+            .unwrap();
             // Set Mutex value back to false, updated on next execution of line 68, setting int_triggered to false
             avr_device::interrupt::free(|cs| {
                 INT_TRIGGERED.borrow(cs).set(false);
@@ -117,8 +124,8 @@ fn read_address(pins: &[Pin<Input<Floating>, Dynamic>; 16]) -> u16 {
 fn read_data(pins: &[Pin<Input<Floating>, Dynamic>]) -> u8 {
     let mut data: u8 = 0;
     for i in 0..8 {
-        let bit: u8 = if pins[i].is_high() { 1 } else { 0 };
-        data = (data << 1) + bit
+        let val: u8 = if pins[i].is_high() { 1 } else { 0 };
+        data = (data << 1) + val
     }
     data
 }
